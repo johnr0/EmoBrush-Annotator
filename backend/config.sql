@@ -9,6 +9,7 @@ CREATE TABLE [Annotation] (
 	[DataId] INTEGER  PRIMARY KEY NOT NULL,
 	[User] NVARCHAR(50) NOT NULL, 
 	[TaskOrder] INTEGER NULL,
+	[TaskLength] INTEGER NULL,
     [Emotion] TEXT NULL,
 	[Data] TEXT  NULL,   
 	[TaskCreatedAt] DATETIME NULL,
