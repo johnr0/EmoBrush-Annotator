@@ -1,0 +1,28 @@
+.App {
+  padding:20px;
+  overflow: hidden;
+  
+}
+
+.flex_row{
+  display: flex;
+  flex-direction: row;
+}
+
+.Canvas{
+  border: solid 1px #333333;
+}
+
+.AnnotationInfo_div{
+  flex:1 1 auto;
+  margin-right: 10px;
+}
+
+.disableSelect{
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
