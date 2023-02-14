@@ -10,6 +10,7 @@ class Canvas extends React.Component{
         p: -1,
         t: -1,
         pastpoints: [],
+        intervalf: undefined
     }
 
     componentDidMount(){
@@ -28,36 +29,19 @@ class Canvas extends React.Component{
         document.getElementById('Canvas').style.height = (side).toString()+'px'
 
         var _this = this
-        var k = 0
-        setInterval(function(){
-            // TODO change here to do the recording only when necessary?
-            if(_this.state.pointer_state=='move'){
-                // console.log(_this.state.x, _this.state.y, _this.state.p, k)
-                _this.state.pastpoints.push([_this.state.x,_this.state.y,_this.state.p, 1])
-                k = k +1
-                // TODO store data at here
-            }else{
-                
-                if(_this.state.pastpoints.length>0){
-                    // if(_this.state.pastpoints.length>1){console.log(_this.state.pastpoints.length, _this.state.pastpoints[_this.state.pastpoints.length-1][3])}
-                    if(_this.state.pastpoints[_this.state.pastpoints.length-1][3]==1){
-                        _this.state.pastpoints.push([-1,-1,-1, -1])
-                        _this.setState({})
-                    }
-                    // console.log('here?')
-                        
-                }
-                
-            }
-           
-            
-        }, 20)
+        
+
+        if(this.props.annotation){
+            this.setIntervalFunction()
+        }
+        
         var _this = this
         Pressure.set('#Canvas', {
             change: function(force, e){
-                console.log('touch', e)
+                // console.log('touch', e)
                         
                         if(_this.state.pointer_state=='start' || _this.state.pointer_state=='move'){
+                            console.log('changing...')
                             var x = (e.clientX - document.getElementById('Canvas').getBoundingClientRect().x)/_this.state.side
                             var y = (e.clientY - document.getElementById('Canvas').getBoundingClientRect().y)/_this.state.side
                             var p = force
@@ -65,9 +49,12 @@ class Canvas extends React.Component{
                             if(x>1){x=1}
                             if(y<0){y=0}
                             if(y>1){y=1}
-                            // console.log(x, y, p)
+                            console.log(x, y, p)
+                            if(_this.state.pastpoints.length==0 || _this.state.pastpoints[_this.state.pastpoints.length-1][3]==-1 || (_this.state.pastpoints[_this.state.pastpoints.length-1][0]==x && _this.state.pastpoints[_this.state.pastpoints.length-1][1]==y)){
+                                _this.setState({x, y, p,t:force, pointer_state:'move'})
+                            }
                             
-                            _this.setState({x, y, p,t:force, pointer_state:'move'})
+                            
                             
                         }
                     
@@ -77,13 +64,46 @@ class Canvas extends React.Component{
         })
     }
 
+    setIntervalFunction(){
+        var _this = this
+        console.log(this.state.intervalf,window.refreshIntervalId)
+        if(this.state.intervalf!=undefined){
+            console.log(this.state.intervalf, 'yea')
+            clearInterval(this.state.intervalf)
+        }
+        var intervalf = setInterval(function(){
+            if(_this.props.started && _this.props.task_time>_this.props.time){
+                if(_this.state.pointer_state=='move'){
+                    // console.log(_this.state.x, _this.state.y, _this.state.p, k)
+                    _this.state.pastpoints.push([_this.state.x,_this.state.y,_this.state.p, 1])
+                    // TODO store data at here
+                }else{
+                    
+                    if(_this.state.pastpoints.length>0){
+                            _this.state.pastpoints.push([-1,-1,-1, -1])
+                            _this.setState({})
+                            
+                    }
+                    
+                }
+            }     
+        }, 20)
+        this.setState({intervalf})
+
+    }
+
     canvasPointerDown(){
         if(this.state.pointer_state=='idle'){
             this.setState({pointer_state:'start'})
+            if(this.props.annotation){
+                this.props.mother.Start(this.props.mother)
+            }
         }
     }
 
-    canvasPointerMove(e){
+    
+
+    canvasTouchMove(e){
         if(this.state.pointer_state=='start' || this.state.pointer_state=='move'){
             var x = (e.targetTouches[0].clientX - document.getElementById('Canvas').getBoundingClientRect().x)/this.state.side
             var y = (e.targetTouches[0].clientY - document.getElementById('Canvas').getBoundingClientRect().y)/this.state.side
@@ -93,9 +113,25 @@ class Canvas extends React.Component{
             if(x>1){x=1}
             if(y<0){y=0}
             if(y>1){y=1}
-            // console.log(x, y, p)
+            // console.log('t move', x, y, p)
             
             this.setState({x, y, p, l, pointer_state:'move'})
+            
+        }
+    }
+
+    canvasPointerMove(e){
+        if(this.state.pointer_state=='start' || this.state.pointer_state=='move'){
+            var x = (e.clientX - document.getElementById('Canvas').getBoundingClientRect().x)/this.state.side
+            var y = (e.clientY - document.getElementById('Canvas').getBoundingClientRect().y)/this.state.side
+            var p = e.force
+            // console.log('p move', x,y)
+            if(x<0){x=0}
+            if(x>1){x=1}
+            if(y<0){y=0}
+            if(y>1){y=1}
+            
+            this.setState({x, y, pointer_state:'move'})
             
         }
     }
@@ -103,13 +139,16 @@ class Canvas extends React.Component{
     canvasPointerUp(){
         if(this.state.pointer_state=='move'){
             this.setState({pointer_state:'idle'})
-            this.state.pastpoints.push([this.state.x,this.state.y,this.state.p, -1])
+            // if(){
+            //     this.state.pastpoints.push([this.state.x,this.state.y,this.state.p, -1])
+            // }
+            
         }
     }
 
     renderDots(){
         return this.state.pastpoints.map((val, idx)=>{
-            return (<circle cx={this.state.side*val[0]} cy={this.state.side*val[1]} r={40*val[2]}></circle>)
+            return (<circle cx={this.state.side*val[0]} cy={this.state.side*val[1]} r={40*val[2]} opacity={0.1}></circle>)
         })
     }
 
@@ -145,7 +184,7 @@ class Canvas extends React.Component{
 
     render(){
         return (<div id='Canvas_div' className='Canvas'>
-            <svg id='Canvas'  onTouchStart={this.canvasPointerDown.bind(this)} onTouchMove={this.canvasPointerMove.bind(this)} onTouchEnd={this.canvasPointerUp.bind(this)}>
+            <svg id='Canvas' style={{backgroundColor:(this.props.task_time<=this.props.time)?'#aaaaaa':''}} onPointerDown={this.canvasPointerDown.bind(this)} onTouchMove={this.canvasTouchMove.bind(this)} onPointerMove={this.canvasPointerMove.bind(this)} onPointerUp={this.canvasPointerUp.bind(this)}>
                 {this.renderDots()}
                 {/* {this.renderLines()} */}
             </svg>
