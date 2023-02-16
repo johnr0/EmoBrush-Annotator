@@ -1,3 +1,4 @@
+import requests
 from flask import Flask, _app_ctx_stack, jsonify, request
 from flask_cors import CORS
 import os
@@ -8,13 +9,21 @@ import petname
 import json 
 
 
+from model.model import EmoSketchModel
+import torch
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+model = torch.load('./model/emosketch_lstm4.pt', map_location=device)
+labels = ['happy', 'sad', 'fearful', 'surprised', 'disgusted', 'angry']
+
 api = Flask(__name__)
 CORS(api, resources={r"/*": {"origins": "*"}})
 api.config['CORS_HEADERS'] = 'Content-Type'
 api.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE=os.path.join(BASE_DIR, './database.db')
+DATABASE=os.path.join(BASE_DIR, './backend/database.db')
 
 def get_db():
     top = _app_ctx_stack.top
@@ -25,16 +34,8 @@ def get_db():
 
 emotion_set = ['happy', 'sad', 'disgusted', 'angry', 'fearful', 'surprised']
 time_set = [5000, 3000, 1000]
-repeat = 1
+repeat = 10
 
-@api.route('/profile')
-def my_profile():
-    response_body = {
-        "name": "Nagato",
-        "about" :"Hello! I'm a full stack developer that loves python and javascript"
-    }
-
-    return jsonify(response_body)
 
 @api.route('/ExistingAnnotator', methods=['POST'])
 def ExistingAnnotator():
@@ -132,6 +133,42 @@ def submitTask():
     conn.commit()
     conn.close()
     return jsonify({})
+
+@api.route('/Recognition', methods=['POST'])
+def Recognition():
+    d = json.loads(request.get_data())
+    data = d['data']
+    print(data)
+    input = torch.Tensor([data]).to(device)
+    with torch.no_grad():
+        output = model.forward(input)
+    print(output)
+    result = {}
+    for idx, label in enumerate(labels):
+        result[label] = float(output[0][idx])
+    print(result)
+
+    return jsonify({'result':result})
+
+@api.route('/ImgGen', methods=['POST'])
+def ImgGen():
+    d = json.loads(request.get_data())
+    data = d['data']
+    prompt = d['prompt']
+    negative_prompt = d['negative_prompt']
+    input = torch.Tensor([data]).to(device)
+    with torch.no_grad():
+        output = model.forward(input)
+    result = {}
+    for idx, label in enumerate(labels):
+        result[label] = float(output[0][idx])
+
+    url = 'http://4832-34-87-3-8.ngrok.io/imgGen'
+    myobj = {'emotions': result, 'prompt':prompt, 'negative_prompt': negative_prompt}
+    print('sending...', result, prompt, negative_prompt)
+    x = requests.post(url, json = myobj)
+
+    return jsonify({'result':x.json()['img']})
 
 if __name__ == "__main__":
     api.run(host='0.0.0.0', debug=True)

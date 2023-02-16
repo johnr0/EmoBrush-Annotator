@@ -10,6 +10,8 @@ import {
   Routes,
   Route
 } from "react-router-dom";
+import RecognitionDemo from './_RecognitionDemo_';
+import ImgGenDemo from './_ImgGenDemo_';
 
 ReactDOM.render(
   <React.StrictMode>
@@ -17,6 +19,8 @@ ReactDOM.render(
       <Routes>
         <Route path="/annotator" element={<Annotation />} />
         <Route path="/" element={<Start />} />
+        <Route path="/recognition" element={<RecognitionDemo />} />
+        <Route path="/image" element={<ImgGenDemo/>}/>
       </Routes>
     </Router>
   </React.StrictMode>,

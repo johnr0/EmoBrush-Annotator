@@ -92,11 +92,15 @@ class Canvas extends React.Component{
 
     }
 
-    canvasPointerDown(){
+    canvasPointerDown(e){
         if(this.state.pointer_state=='idle'){
             this.setState({pointer_state:'start'})
             if(this.props.annotation){
                 this.props.mother.Start(this.props.mother)
+            }
+            if(this.props.inference){
+                this.props.mother.Start(this.props.mother)
+                
             }
         }
     }
@@ -105,19 +109,24 @@ class Canvas extends React.Component{
 
     canvasTouchMove(e){
         if(this.state.pointer_state=='start' || this.state.pointer_state=='move'){
-            var x = (e.targetTouches[0].clientX - document.getElementById('Canvas').getBoundingClientRect().x)/this.state.side
-            var y = (e.targetTouches[0].clientY - document.getElementById('Canvas').getBoundingClientRect().y)/this.state.side
-            var p = e.targetTouches[0].force
-            var l = e.targetTouches
-            if(x<0){x=0}
-            if(x>1){x=1}
-            if(y<0){y=0}
-            if(y>1){y=1}
-            // console.log('t move', x, y, p)
-            
-            this.setState({x, y, p, l, pointer_state:'move'})
+            this.setPositionPressure(e)
             
         }
+    }
+
+    setPositionPressure(e){
+        var x = (e.targetTouches[0].clientX - document.getElementById('Canvas').getBoundingClientRect().x)/this.state.side
+        var y = (e.targetTouches[0].clientY - document.getElementById('Canvas').getBoundingClientRect().y)/this.state.side
+        var p = e.targetTouches[0].force
+        var l = e.targetTouches
+        if(x<0){x=0}
+        if(x>1){x=1}
+        if(y<0){y=0}
+        if(y>1){y=1}
+        // console.log('t move', x, y, p)
+        
+        this.setState({x, y, p, l, pointer_state:'move'})
+
     }
 
     canvasPointerMove(e){
@@ -146,9 +155,17 @@ class Canvas extends React.Component{
         }
     }
 
-    renderDots(){
-        return this.state.pastpoints.map((val, idx)=>{
-            return (<circle cx={this.state.side*val[0]} cy={this.state.side*val[1]} r={40*val[2]} opacity={0.1}></circle>)
+    renderDots(obj, pad){
+        return obj.map((val, idx)=>{
+            var x, y
+            if(pad){
+                x= val[0]+0.5
+                y=val[1]+0.5
+            }else{
+                x=val[0]
+                y=val[1]
+            }
+            return (<circle cx={this.state.side*x} cy={this.state.side*y} r={40*val[2]} opacity={0.1}></circle>)
         })
     }
 
@@ -185,7 +202,8 @@ class Canvas extends React.Component{
     render(){
         return (<div id='Canvas_div' className='Canvas'>
             <svg id='Canvas' style={{backgroundColor:(this.props.task_time<=this.props.time)?'#aaaaaa':''}} onPointerDown={this.canvasPointerDown.bind(this)} onTouchMove={this.canvasTouchMove.bind(this)} onPointerMove={this.canvasPointerMove.bind(this)} onPointerUp={this.canvasPointerUp.bind(this)}>
-                {this.renderDots()}
+                {this.props.annotation && this.renderDots(this.state.pastpoints)}
+                {/* {this.props.inference && this.renderDots(this.props.mother.state.send_data, true)} */}
                 {/* {this.renderLines()} */}
             </svg>
             <span className='disableSelect' style={{pointerEvents:'none'}}>{this.state.x.toFixed(2)}, {this.state.y.toFixed(2)}, {this.state.p.toFixed(2)}, {this.state.t}, {this.state.pointer_state.length}</span>
